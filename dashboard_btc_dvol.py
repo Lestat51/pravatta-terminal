@@ -177,39 +177,39 @@ try:
 
     st.subheader("BTC + DVOL")
 
-fig = px.line(
+    fig = px.line(
     df_combined,
     x="time",
     y=["BTC Normalizado", "DVOL Normalizado"],
-)
+    )
 
-fig.update_yaxes(autorange=True)
+    fig.update_yaxes(autorange=True)
 
-st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True)
 
-st.subheader("DVOL Chart")
+    st.subheader("DVOL Chart")
 
-fig_dvol = px.line(
+    fig_dvol = px.line(
     df_hist,
     x="time",
     y="DVOL Indexed",
-)
+    )
 
-fig_dvol.update_yaxes(autorange=True)
+    fig_dvol.update_yaxes(autorange=True)
 
-st.plotly_chart(fig_dvol, use_container_width=True)
+    st.plotly_chart(fig_dvol, use_container_width=True)
 
-st.subheader("BTC Chart")
+    st.subheader("BTC Chart")
 
-fig_btc = px.line(
+    fig_btc = px.line(
     df_hist,
     x="time",
     y="BTC Indexed",
-)
+    )
 
-fig_btc.update_yaxes(autorange=True)
+    fig_btc.update_yaxes(autorange=True)
 
-st.plotly_chart(fig_btc, use_container_width=True)
+    st.plotly_chart(fig_btc, use_container_width=True)
 
     st.caption(f"Última atualização: {now}")
 
