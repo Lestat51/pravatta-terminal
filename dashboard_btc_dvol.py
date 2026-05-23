@@ -190,13 +190,11 @@ try:
 
     df_combined = df_hist.copy()
 
-    df_combined["BTC Normalizado"] = (
-        df_combined["BTC"] / df_combined["BTC"].iloc[0]
+    df_combined["DVOL Normalizado"] = (
+    df_combined["DVOL"] / df_combined["DVOL"].iloc[0]
     ) * 100
 
-    df_combined["DVOL Normalizado"] = (
-        df_combined["DVOL"] / df_combined["DVOL"].iloc[0]
-    ) * 100
+    df_combined["BTC Normalizado"] = 100
 
     st.subheader("BTC + DVOL")
 
