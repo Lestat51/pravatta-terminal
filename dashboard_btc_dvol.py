@@ -196,12 +196,12 @@ try:
 
     df_combined["BTC Normalizado"] = 100
 
-    st.subheader("BTC + DVOL")
+    st.subheader("DVOL 24h Historical Chart")
 
     fig = px.line(
     df_combined,
     x="time",
-    y=["BTC Normalizado", "DVOL Normalizado"],
+    y="DVOL Normalizado",
     )
 
     fig.update_yaxes(autorange=True)
