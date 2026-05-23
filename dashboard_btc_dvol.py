@@ -205,11 +205,11 @@ st.caption(f"DVOL history points: {len(df_dvol)}")
 
 df_combined = pd.merge(df_btc, df_dvol, on="time")
 
-df_combined["BTC Normalizado"] = (
+df_combined["BTC Normalized"] = (
     df_combined["BTC"] / df_combined["BTC"].iloc[0]
 ) * 100
 
-df_combined["DVOL Normalizado"] = (
+df_combined["DVOL Normalized"] = (
     df_combined["DVOL"] / df_combined["DVOL"].iloc[0]
 ) * 100
 
@@ -218,7 +218,7 @@ st.subheader("BTC vs DVOL — 24h")
 fig = px.line(
     df_combined,
     x="time",
-    y=["BTC Normalizado", "DVOL Normalizado"],
+    y=["BTC Normalized", "DVOL Normalized"],
 )
 
 fig.update_yaxes(autorange=True)
