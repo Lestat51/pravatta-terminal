@@ -22,7 +22,22 @@ def deribit_get(endpoint, params=None):
     )
     response.raise_for_status()
     return response.json()["result"]
+def get_dvol_history(hours=24):
+    end = datetime.utcnow()
+    start = end - timedelta(hours=hours)
 
+    data = deribit_get("get_volatility_index_data", {
+        "currency": "BTC",
+        "start_timestamp": int(start.timestamp() * 1000),
+        "end_timestamp": int(end.timestamp() * 1000),
+        "resolution": "60"
+    })
+
+    df = pd.DataFrame(data["data"])
+    df["time"] = pd.to_datetime(df["ticks"], unit="ms")
+    df["DVOL"] = df["close"]
+
+    return df[["time", "DVOL"]]
 
 def get_index_price(index_name):
     data = deribit_get("get_index_price", {"index_name": index_name})
