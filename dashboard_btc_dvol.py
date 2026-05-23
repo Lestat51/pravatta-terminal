@@ -162,6 +162,7 @@ try:
     st.table(regime_table)
 
     df_hist = pd.DataFrame(st.session_state.history)
+    st.caption(f"History points: {len(df_hist)}")
 
     df_hist["DVOL Indexed"] = (
     df_hist["DVOL"] / df_hist["DVOL"].iloc[0]
