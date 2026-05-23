@@ -218,14 +218,14 @@ try:
         st.subheader("BTC vs DVOL — 24h")
     
         fig = px.line(
-        df_combined,
-        x="time",
-        y=["BTC Normalizado", "DVOL Normalizado"],
-        )
-    
-       fig.update_yaxes(autorange=True)
-    
-       st.plotly_chart(fig, use_container_width=True)
+            df_combined,
+            x="time",
+            y=["BTC Normalizado", "DVOL Normalizado"],
+    )
+
+    fig.update_yaxes(autorange=True)
+
+    st.plotly_chart(fig, use_container_width=True)
     
        st.caption(f"Última atualização: {now}")
 
