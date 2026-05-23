@@ -150,7 +150,7 @@ try:
         "DVOL": ["< 35", "35–42", "42–55", "55–70", "> 70"],
         "Regime": [
             "Extreme Complacency",
-            "Regime: Normal Volatility",
+            "Normal Volatility",
             "Rising Risk",
             "Stress",
             "Capitulation / Panic"
