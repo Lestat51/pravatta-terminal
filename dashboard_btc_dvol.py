@@ -198,7 +198,8 @@ try:
 
     st.table(regime_table)
 
-    df_hist = get_dvol_history(24)
+    df_dvol = get_dvol_history(24)
+    df_btc = get_btc_history(24)
     st.caption(f"History points: {len(df_hist)}")
 
     df_hist["DVOL Indexed"] = (
