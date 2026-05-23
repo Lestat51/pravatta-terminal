@@ -180,10 +180,10 @@ try:
         ]
     )
 
-    st.subheader("Gráfico DVOL")
+    st.subheader("DVOL Chart")
     st.line_chart(df_hist.set_index("time")["DVOL"])
 
-    st.subheader("Gráfico BTC")
+    st.subheader("BTC Chart")
     st.line_chart(df_hist.set_index("time")["BTC"])
 
     st.caption(f"Última atualização: {now}")
