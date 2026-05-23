@@ -198,6 +198,8 @@ try:
 
     st.table(regime_table)
 
+    try:
+    
     df_dvol = get_dvol_history(24)
     df_btc = get_btc_history(24)
 
