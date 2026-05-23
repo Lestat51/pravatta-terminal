@@ -43,6 +43,23 @@ def get_dvol_history(hours=24):
     df["DVOL"] = df["close"]
 
     return df[["time", "DVOL"]]
+def get_btc_history(hours=24):
+    end = datetime.utcnow()
+    start = end - timedelta(hours=hours)
+
+    data = deribit_get("get_tradingview_chart_data", {
+        "instrument_name": "BTC-PERPETUAL",
+        "start_timestamp": int(start.timestamp() * 1000),
+        "end_timestamp": int(end.timestamp() * 1000),
+        "resolution": "60"
+    })
+
+    df = pd.DataFrame({
+        "time": pd.to_datetime(data["ticks"], unit="ms"),
+        "BTC": data["close"]
+    })
+
+    return df
 
 def get_index_price(index_name):
     data = deribit_get("get_index_price", {"index_name": index_name})
