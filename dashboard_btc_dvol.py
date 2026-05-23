@@ -200,34 +200,34 @@ try:
 
     try:
     
-    df_dvol = get_dvol_history(24)
-    df_btc = get_btc_history(24)
+        df_dvol = get_dvol_history(24)
+        df_btc = get_btc_history(24)
 
-    st.caption(f"DVOL history points: {len(df_dvol)}")
+        st.caption(f"DVOL history points: {len(df_dvol)}")
 
-df_combined = pd.merge(df_btc, df_dvol, on="time")
+        df_combined = pd.merge(df_btc, df_dvol, on="time")
 
-df_combined["BTC Normalizado"] = (
-    df_combined["BTC"] / df_combined["BTC"].iloc[0]
-) * 100
+        df_combined["BTC Normalizado"] = (
+        df_combined["BTC"] / df_combined["BTC"].iloc[0]
+        ) * 100
 
-df_combined["DVOL Normalizado"] = (
-    df_combined["DVOL"] / df_combined["DVOL"].iloc[0]
-) * 100
+        df_combined["DVOL Normalizado"] = (
+        df_combined["DVOL"] / df_combined["DVOL"].iloc[0]
+        ) * 100
 
-st.subheader("BTC vs DVOL — 24h")
+        st.subheader("BTC vs DVOL — 24h")
 
-fig = px.line(
-    df_combined,
-    x="time",
-    y=["BTC Normalizado", "DVOL Normalizado"],
-)
+        fig = px.line(
+        df_combined,
+        x="time",
+        y=["BTC Normalizado", "DVOL Normalizado"],
+        )
+ 
+       fig.update_yaxes(autorange=True)
 
-fig.update_yaxes(autorange=True)
-
-st.plotly_chart(fig, use_container_width=True)
+       st.plotly_chart(fig, use_container_width=True)
    
-    st.caption(f"Última atualização: {now}")
+       st.caption(f"Última atualização: {now}")
 
 except Exception as e:
     st.error(f"Erro ao buscar dados: {e}")
