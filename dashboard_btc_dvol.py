@@ -181,10 +181,22 @@ try:
     )
 
     st.subheader("DVOL Chart")
-    st.line_chart(df_hist.set_index("time")["DVOL"])
+    df_hist["DVOL Indexed"] = (
+    df_hist["DVOL"] / df_hist["DVOL"].iloc[0]
+    ) * 100
+
+    st.line_chart(
+    df_hist.set_index("time")["DVOL Indexed"]
+    )
 
     st.subheader("BTC Chart")
-    st.line_chart(df_hist.set_index("time")["BTC"])
+    df_hist["BTC Indexed"] = (
+    df_hist["BTC"] / df_hist["BTC"].iloc[0]
+    ) * 100
+
+    st.line_chart(
+    df_hist.set_index("time")["BTC Indexed"]
+    )
 
     st.caption(f"Última atualização: {now}")
 
