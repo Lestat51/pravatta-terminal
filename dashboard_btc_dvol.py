@@ -227,6 +227,9 @@ st.plotly_chart(fig, use_container_width=True)
 
 st.caption(f"Última atualização: {now}")
 
+st.markdown("---")
+st.caption("© 2026 Pravatta Research")
+st.caption("Market analytics and volatility research.")
 
 time.sleep(5)
 st.rerun()
