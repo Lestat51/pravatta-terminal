@@ -7,7 +7,10 @@ from datetime import datetime
 ALERTA_DVOL = 42
 DERIBIT = "https://www.deribit.com/api/v2/public"
 
-st.set_page_config(page_title="BTC Quant Dashboard", layout="wide")
+st.set_page_config(
+    page_title="Pravatta BTC Volatility Dashboard",
+    layout="wide"
+)
 
 
 def deribit_get(endpoint, params=None):
@@ -102,7 +105,8 @@ if "history" not in st.session_state:
     st.session_state.history = []
 
 
-st.title("BTC Quant Dashboard")
+st.title("Pravatta BTC Volatility Dashboard")
+st.caption("Real-time Bitcoin volatility, derivatives and positioning analytics powered by Deribit data.")
 
 try:
     btc_price = get_index_price("btc_usd")
@@ -131,7 +135,7 @@ try:
     col4.metric("Funding 8h", f"{funding * 100:.5f}%")
     col5.metric("Open Interest", f"${oi/1_000_000:,.2f}M")
 
-    st.subheader("Regime de Volatilidade")
+    st.subheader("Volatility Regime")
 
     if dvol < 35:
         st.info(f"🟦 Regime: {regime}")
@@ -145,11 +149,11 @@ try:
     regime_table = pd.DataFrame({
         "DVOL": ["< 35", "35–42", "42–55", "55–70", "> 70"],
         "Regime": [
-            "Complacência extrema",
-            "Normal",
-            "Risco crescente",
+            "Extreme Complacency",
+            "Regime: Normal Volatility",
+            "Rising Risk",
             "Stress",
-            "Capitulação / Pânico"
+            "Capitulation / Panic"
         ]
     })
 
