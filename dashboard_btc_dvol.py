@@ -3,7 +3,7 @@ import requests
 import pandas as pd
 import plotly.express as px
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 
 ALERTA_DVOL = 42
 DERIBIT = "https://www.deribit.com/api/v2/public"
