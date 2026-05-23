@@ -1,6 +1,7 @@
 import streamlit as st
 import requests
 import pandas as pd
+import plotly.express as px
 import time
 from datetime import datetime
 
@@ -174,34 +175,46 @@ try:
         df_combined["DVOL"] / df_combined["DVOL"].iloc[0]
     ) * 100
 
-    st.line_chart(
-        df_combined.set_index("time")[
-            ["BTC Normalizado", "DVOL Normalizado"]
-        ]
-    )
+    st.subheader("BTC + DVOL")
 
-    st.subheader("DVOL Chart")
-    df_hist["DVOL Indexed"] = (
-    df_hist["DVOL"] / df_hist["DVOL"].iloc[0]
-    ) * 100
+fig = px.line(
+    df_combined,
+    x="time",
+    y=["BTC Normalizado", "DVOL Normalizado"],
+)
 
-    st.line_chart(
-    df_hist.set_index("time")["DVOL Indexed"]
-    )
+fig.update_yaxes(autorange=True)
 
-    st.subheader("BTC Chart")
-    df_hist["BTC Indexed"] = (
-    df_hist["BTC"] / df_hist["BTC"].iloc[0]
-    ) * 100
+st.plotly_chart(fig, use_container_width=True)
 
-    st.line_chart(
-    df_hist.set_index("time")["BTC Indexed"]
-    )
+st.subheader("DVOL Chart")
+
+fig_dvol = px.line(
+    df_hist,
+    x="time",
+    y="DVOL Indexed",
+)
+
+fig_dvol.update_yaxes(autorange=True)
+
+st.plotly_chart(fig_dvol, use_container_width=True)
+
+st.subheader("BTC Chart")
+
+fig_btc = px.line(
+    df_hist,
+    x="time",
+    y="BTC Indexed",
+)
+
+fig_btc.update_yaxes(autorange=True)
+
+st.plotly_chart(fig_btc, use_container_width=True)
 
     st.caption(f"Última atualização: {now}")
 
 except Exception as e:
     st.error(f"Erro ao buscar dados: {e}")
 
-time.sleep(30)
+time.sleep(5)
 st.rerun()
