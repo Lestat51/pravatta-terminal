@@ -34,7 +34,7 @@ def get_dvol_history(hours=24):
     })
 
     df = pd.DataFrame(data["data"])
-    df["time"] = pd.to_datetime(df["ticks"], unit="ms")
+    df["time"] = pd.to_datetime(df["timestamp"], unit="ms")
     df["DVOL"] = df["close"]
 
     return df[["time", "DVOL"]]
