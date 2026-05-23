@@ -147,32 +147,32 @@ st.title("Pravatta BTC Volatility Dashboard")
 st.caption("Real-time Bitcoin volatility, derivatives and positioning analytics powered by Deribit data.")
 
 
-    btc_price = get_index_price("btc_usd")
-    dvol = get_index_price("btcdvol_usdc")
-    perp = get_perp_summary()
-    options = get_options_summary()
+btc_price = get_index_price("btc_usd")
+dvol = get_index_price("btcdvol_usdc")
+perp = get_perp_summary()
+options = get_options_summary()
 
-    funding = perp.get("funding_8h", 0)
-    oi = perp.get("open_interest", 0)
-    skew = calculate_skew(options)
+funding = perp.get("funding_8h", 0)
+oi = perp.get("open_interest", 0)
+skew = calculate_skew(options)
 
-    regime = dvol_regime(dvol)
-    now = datetime.now().strftime("%H:%M:%S")
+regime = dvol_regime(dvol)
+now = datetime.now().strftime("%H:%M:%S")
 
-    st.session_state.history.append({
-        "time": now,
-        "BTC": btc_price,
-        "DVOL": dvol
-    })
-    st.session_state.history = st.session_state.history[-300:]
+st.session_state.history.append({
+    "time": now,
+    "BTC": btc_price,
+    "DVOL": dvol
+})
+st.session_state.history = st.session_state.history[-300:]
 
-    col1, col2, col3, col4, col5 = st.columns(5)
+col1, col2, col3, col4, col5 = st.columns(5)
 
-    col1.metric("BTC Price", f"${btc_price:,.2f}")
-    col2.metric("DVOL", f"{dvol:.2f}%")
-    col3.metric("Skew", f"{skew:.2f}" if skew is not None else "N/A")
-    col4.metric("Funding 8h", f"{funding * 100:.5f}%")
-    col5.metric("Open Interest", f"${oi/1_000_000:,.2f}M")
+col1.metric("BTC Price", f"${btc_price:,.2f}")
+col2.metric("DVOL", f"{dvol:.2f}%")
+col3.metric("Skew", f"{skew:.2f}" if skew is not None else "N/A")
+col4.metric("Funding 8h", f"{funding * 100:.5f}%")
+col5.metric("Open Interest", f"${oi/1_000_000:,.2f}M")
 
     st.subheader("Volatility Regime")
 
