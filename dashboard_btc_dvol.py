@@ -213,8 +213,8 @@ try:
 
     st.caption(f"Última atualização: {now}")
 
-except Exception as e:
+    except Exception as e:
     st.error(f"Erro ao buscar dados: {e}")
 
-time.sleep(5)
-st.rerun()
+    time.sleep(5)
+    st.rerun()
