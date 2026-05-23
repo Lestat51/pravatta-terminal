@@ -183,7 +183,7 @@ try:
     df_hist["DVOL"] / df_hist["DVOL"].iloc[0]
     ) * 100
 
-       df_combined = df_hist.copy()
+    df_combined = df_hist.copy()
 
     df_combined["BTC Normalizado"] = (
         df_combined["BTC"] / df_combined["BTC"].iloc[0]
