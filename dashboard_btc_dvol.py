@@ -147,7 +147,7 @@ try:
         st.error(f"🟥 Regime: {regime}")
 
     regime_table = pd.DataFrame({
-        "DVOL": ["< 35", "35–42", "42–55", "55–70", " >80"],
+        "DVOL": ["< 35", "35–42", "42–55", "55–70", " >>70"],
         "Regime": [
             "Extreme Complacency",
             "Normal Volatility",
