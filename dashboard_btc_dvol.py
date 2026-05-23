@@ -174,29 +174,29 @@ col3.metric("Skew", f"{skew:.2f}" if skew is not None else "N/A")
 col4.metric("Funding 8h", f"{funding * 100:.5f}%")
 col5.metric("Open Interest", f"${oi/1_000_000:,.2f}M")
 
-    st.subheader("Volatility Regime")
+st.subheader("Volatility Regime")
 
-    if dvol < 35:
-        st.info(f"🟦 Regime: {regime}")
-    elif dvol < 42:
-        st.success(f"🟩 Regime: {regime}")
-    elif dvol < 55:
-        st.warning(f"🟨 Regime: {regime}")
-    else:
-        st.error(f"🟥 Regime: {regime}")
+if dvol < 35:
+    st.info(f"🟦 Regime: {regime}")
+elif dvol < 42:
+    st.success(f"🟩 Regime: {regime}")
+elif dvol < 55:
+    st.warning(f"🟨 Regime: {regime}")
+else:
+    st.error(f"🟥 Regime: {regime}")
 
-    regime_table = pd.DataFrame({
-        "DVOL": ["< 35", "35–42", "42–55", "55–70", "\\> 70"],
-        "Regime": [
-            "Extreme Complacency",
-            "Normal Volatility",
-            "Rising Risk",
-            "Stress",
-            "Capitulation / Panic"
-        ]
-    })
+regime_table = pd.DataFrame({
+    "DVOL": ["< 35", "35–42", "42–55", "55–70", "\\> 70"],
+    "Regime": [
+        "Extreme Complacency",
+        "Normal Volatility",
+        "Rising Risk",
+        "Stress",
+        "Capitulation / Panic"
+    ]
+})
 
-    st.table(regime_table)
+st.table(regime_table)
 
 df_dvol = get_dvol_history(24)
 df_btc = get_btc_history(24)
