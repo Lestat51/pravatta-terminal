@@ -126,7 +126,7 @@ try:
         "BTC": btc_price,
         "DVOL": dvol
     })
-st.session_state.history = st.session_state.history[-300:]
+    st.session_state.history = st.session_state.history[-300:]
 
     col1, col2, col3, col4, col5 = st.columns(5)
 
