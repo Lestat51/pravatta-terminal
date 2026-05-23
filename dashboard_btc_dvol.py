@@ -176,18 +176,14 @@ try:
 
     st.table(regime_table)
 
-    df_hist = pd.DataFrame(st.session_state.history)
+    df_hist = get_dvol_history(24)
     st.caption(f"History points: {len(df_hist)}")
 
     df_hist["DVOL Indexed"] = (
     df_hist["DVOL"] / df_hist["DVOL"].iloc[0]
     ) * 100
 
-    df_hist["BTC Indexed"] = (
-    df_hist["BTC"] / df_hist["BTC"].iloc[0]
-    ) * 100
-
-    df_combined = df_hist.copy()
+       df_combined = df_hist.copy()
 
     df_combined["BTC Normalizado"] = (
         df_combined["BTC"] / df_combined["BTC"].iloc[0]
@@ -208,31 +204,7 @@ try:
     fig.update_yaxes(autorange=True)
 
     st.plotly_chart(fig, use_container_width=True)
-
-    st.subheader("DVOL Chart")
-
-    fig_dvol = px.line(
-    df_hist,
-    x="time",
-    y="DVOL Indexed",
-    )
-
-    fig_dvol.update_yaxes(autorange=True)
-
-    st.plotly_chart(fig_dvol, use_container_width=True)
-
-    st.subheader("BTC Chart")
-
-    fig_btc = px.line(
-    df_hist,
-    x="time",
-    y="BTC Indexed",
-    )
-
-    fig_btc.update_yaxes(autorange=True)
-
-    st.plotly_chart(fig_btc, use_container_width=True)
-
+   
     st.caption(f"Última atualização: {now}")
 
 except Exception as e:
