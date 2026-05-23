@@ -146,7 +146,7 @@ if "history" not in st.session_state:
 st.title("Pravatta BTC Volatility Dashboard")
 st.caption("Real-time Bitcoin volatility, derivatives and positioning analytics powered by Deribit data.")
 
-try:
+
     btc_price = get_index_price("btc_usd")
     dvol = get_index_price("btcdvol_usdc")
     perp = get_perp_summary()
@@ -227,8 +227,6 @@ st.plotly_chart(fig, use_container_width=True)
 
 st.caption(f"Última atualização: {now}")
 
-except Exception as e:
-    st.error(f"Erro ao buscar dados: {e}")
 
 time.sleep(5)
 st.rerun()
