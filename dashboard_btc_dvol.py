@@ -199,7 +199,7 @@ try:
     st.table(regime_table)
 
     df_dvol = get_dvol_history(24)
-df_btc = get_btc_history(24)
+    df_btc = get_btc_history(24)
 
 st.caption(f"DVOL history points: {len(df_dvol)}")
 
@@ -230,4 +230,4 @@ st.caption(f"Última atualização: {now}")
 time.sleep(5)
 st.rerun()
 
-    st.rerun()
+ 
