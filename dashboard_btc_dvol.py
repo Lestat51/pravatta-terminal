@@ -163,7 +163,13 @@ try:
 
     df_hist = pd.DataFrame(st.session_state.history)
 
-    st.subheader("BTC + DVOL")
+    df_hist["DVOL Indexed"] = (
+    df_hist["DVOL"] / df_hist["DVOL"].iloc[0]
+    ) * 100
+
+    df_hist["BTC Indexed"] = (
+    df_hist["BTC"] / df_hist["BTC"].iloc[0]
+    ) * 100
 
     df_combined = df_hist.copy()
 
