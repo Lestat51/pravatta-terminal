@@ -90,15 +90,15 @@ def calculate_skew(options):
 
 def dvol_regime(dvol):
     if dvol < 35:
-        return "Complacência extrema"
+        return "Extreme Complacency"
     elif dvol < 42:
-        return "Normal"
+        return "Normal Volatility"
     elif dvol < 55:
-        return "Risco crescente"
+        return "Rising Risk"
     elif dvol < 70:
         return "Stress"
     else:
-        return "Capitulação / Pânico"
+        return "Capitulation / Panic"
 
 
 if "history" not in st.session_state:
