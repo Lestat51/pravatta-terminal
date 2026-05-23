@@ -227,6 +227,9 @@ st.plotly_chart(fig, use_container_width=True)
 
 st.caption(f"Última atualização: {now}")
 
+except Exception as e:
+    st.error(f"Erro ao buscar dados: {e}")
+
 time.sleep(5)
 st.rerun()
 
