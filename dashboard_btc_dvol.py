@@ -1,13 +1,17 @@
 import streamlit as st
 import requests
 import pandas as pd
+import plotly.express as px
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 
 ALERTA_DVOL = 42
 DERIBIT = "https://www.deribit.com/api/v2/public"
 
-st.set_page_config(page_title="BTC Quant Dashboard", layout="wide")
+st.set_page_config(
+    page_title="Pravatta BTC Volatility Dashboard",
+    layout="wide"
+)
 
 
 def deribit_get(endpoint, params=None):
@@ -19,6 +23,43 @@ def deribit_get(endpoint, params=None):
     response.raise_for_status()
     return response.json()["result"]
 
+def get_dvol_history(hours=24):
+    end = datetime.utcnow()
+    start = end - timedelta(hours=hours)
+
+    data = deribit_get("get_volatility_index_data", {
+        "currency": "BTC",
+        "start_timestamp": int(start.timestamp() * 1000),
+        "end_timestamp": int(end.timestamp() * 1000),
+        "resolution": "60"
+    })
+
+    df = pd.DataFrame(
+        data["data"],
+        columns=["timestamp", "open", "high", "low", "close"]
+    )
+
+    df["time"] = pd.to_datetime(df["timestamp"], unit="ms")
+    df["DVOL"] = df["close"]
+
+    return df[["time", "DVOL"]]
+def get_btc_history(hours=24):
+    end = datetime.utcnow()
+    start = end - timedelta(hours=hours)
+
+    data = deribit_get("get_tradingview_chart_data", {
+        "instrument_name": "BTC-PERPETUAL",
+        "start_timestamp": int(start.timestamp() * 1000),
+        "end_timestamp": int(end.timestamp() * 1000),
+        "resolution": "60"
+    })
+
+    df = pd.DataFrame({
+        "time": pd.to_datetime(data["ticks"], unit="ms"),
+        "BTC": data["close"]
+    })
+
+    return df
 
 def get_index_price(index_name):
     data = deribit_get("get_index_price", {"index_name": index_name})
@@ -87,102 +128,113 @@ def calculate_skew(options):
 
 def dvol_regime(dvol):
     if dvol < 35:
-        return "Complacência extrema"
+        return "Extreme Complacency"
     elif dvol < 42:
-        return "Normal"
+        return "Normal Volatility"
     elif dvol < 55:
-        return "Risco crescente"
+        return "Rising Risk"
     elif dvol < 70:
         return "Stress"
     else:
-        return "Capitulação / Pânico"
+        return "Capitulation / Panic"
 
 
 if "history" not in st.session_state:
     st.session_state.history = []
 
 
-st.title("BTC Quant Dashboard")
+st.title("Pravatta BTC Volatility Dashboard")
+st.caption("Real-time Bitcoin volatility, derivatives and positioning analytics powered by Deribit data.")
 
-try:
-    btc_price = get_index_price("btc_usd")
-    dvol = get_index_price("btcdvol_usdc")
-    perp = get_perp_summary()
-    options = get_options_summary()
 
-    funding = perp.get("funding_8h", 0)
-    oi = perp.get("open_interest", 0)
-    skew = calculate_skew(options)
+btc_price = get_index_price("btc_usd")
+dvol = get_index_price("btcdvol_usdc")
+perp = get_perp_summary()
+options = get_options_summary()
 
-    regime = dvol_regime(dvol)
-    now = datetime.now().strftime("%H:%M:%S")
+funding = perp.get("funding_8h", 0)
+oi = perp.get("open_interest", 0)
+skew = calculate_skew(options)
 
-    st.session_state.history.append({
-        "time": now,
-        "BTC": btc_price,
-        "DVOL": dvol
-    })
+regime = dvol_regime(dvol)
+now = datetime.now().strftime("%H:%M:%S")
 
-    col1, col2, col3, col4, col5 = st.columns(5)
+st.session_state.history.append({
+    "time": now,
+    "BTC": btc_price,
+    "DVOL": dvol
+})
+st.session_state.history = st.session_state.history[-300:]
 
-    col1.metric("BTC Price", f"${btc_price:,.2f}")
-    col2.metric("DVOL", f"{dvol:.2f}%")
-    col3.metric("Skew", f"{skew:.2f}" if skew is not None else "N/A")
-    col4.metric("Funding 8h", f"{funding * 100:.5f}%")
-    col5.metric("Open Interest", f"${oi/1_000_000:,.2f}M")
+col1, col2, col3, col4, col5 = st.columns(5)
 
-    st.subheader("Regime de Volatilidade")
+col1.metric("BTC Price", f"${btc_price:,.2f}")
+col2.metric("DVOL", f"{dvol:.2f}%")
+col3.metric("Skew", f"{skew:.2f}" if skew is not None else "N/A")
+col4.metric("Funding 8h", f"{funding * 100:.5f}%")
+col5.metric("Open Interest", f"${oi/1_000_000:,.2f}M")
 
-    if dvol < 35:
-        st.info(f"🟦 Regime: {regime}")
-    elif dvol < 42:
-        st.success(f"🟩 Regime: {regime}")
-    elif dvol < 55:
-        st.warning(f"🟨 Regime: {regime}")
-    else:
-        st.error(f"🟥 Regime: {regime}")
+st.subheader("Volatility Regime")
 
-    regime_table = pd.DataFrame({
-        "DVOL": ["< 35", "35–42", "42–55", "55–70", "> 70"],
-        "Regime": [
-            "Complacência extrema",
-            "Normal",
-            "Risco crescente",
-            "Stress",
-            "Capitulação / Pânico"
-        ]
-    })
+if dvol < 35:
+    st.info(f"🟦 Regime: {regime}")
+elif dvol < 42:
+    st.success(f"🟩 Regime: {regime}")
+elif dvol < 55:
+    st.warning(f"🟨 Regime: {regime}")
+else:
+    st.error(f"🟥 Regime: {regime}")
 
-    st.table(regime_table)
+regime_table = pd.DataFrame({
+    "DVOL": ["< 35", "35–42", "42–55", "55–70", "\\> 70"],
+    "Regime": [
+        "Extreme Complacency",
+        "Normal Volatility",
+        "Rising Risk",
+        "Stress",
+        "Capitulation / Panic"
+    ]
+})
 
-    df_hist = pd.DataFrame(st.session_state.history)
+st.table(regime_table)
 
-    st.subheader("BTC + DVOL")
+df_dvol = get_dvol_history(24)
+df_btc = get_btc_history(24)
 
-    df_combined = df_hist.copy()
+st.caption(f"DVOL history points: {len(df_dvol)}")
 
-    df_combined["BTC Normalizado"] = (
-        df_combined["BTC"] / df_combined["BTC"].iloc[0]
-    ) * 100
+df_combined = pd.merge(df_btc, df_dvol, on="time")
 
-    df_combined["DVOL Normalizado"] = (
-        df_combined["DVOL"] / df_combined["DVOL"].iloc[0]
-    ) * 100
+df_combined["BTC Normalized"] = (
+    df_combined["BTC"] / df_combined["BTC"].iloc[0]
+) * 100
 
-    st.line_chart(
-        df_combined.set_index("time")[
-            ["BTC Normalizado", "DVOL Normalizado"]
-        ]
-    )
+df_combined["DVOL Normalized"] = (
+    df_combined["DVOL"] / df_combined["DVOL"].iloc[0]
+) * 100
 
-    st.subheader("Gráfico DVOL")
-    st.line_chart(df_hist.set_index("time")["DVOL"])
+st.subheader("BTC vs DVOL — 24h")
 
-    st.subheader("Gráfico BTC")
-    st.line_chart(df_hist.set_index("time")["BTC"])
+fig = px.line(
+    df_combined,
+    x="time",
+    y=["BTC Normalized", "DVOL Normalized"],
+)
 
-    st.caption(f"Última atualização: {now}")
+fig.update_yaxes(autorange=True)
 
-except Exception as e:
-    st.error(f"Erro ao buscar dados: {e}")
+st.plotly_chart(fig, use_container_width=True)
 
+<<<<<<< HEAD
+=======
+st.caption(f"Última atualização: {now}")
+
+st.markdown("---")
+st.caption("© 2026 Pravatta Research")
+st.caption("Market analytics and volatility research.")
+
+time.sleep(5)
+st.rerun()
+
+ 
+>>>>>>> 9535fd77bd470ca55e6bb8da405db450d85389e1
