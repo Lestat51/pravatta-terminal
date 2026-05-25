@@ -225,7 +225,7 @@ fig.update_yaxes(autorange=True)
 
 st.plotly_chart(fig, use_container_width=True)
 
-=======
+
 st.caption(f"Última atualização: {now}")
 
 st.markdown("---")
