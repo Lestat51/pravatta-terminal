@@ -225,7 +225,6 @@ fig.update_yaxes(autorange=True)
 
 st.plotly_chart(fig, use_container_width=True)
 
-<<<<<<< HEAD
 =======
 st.caption(f"Última atualização: {now}")
 
@@ -237,4 +236,4 @@ time.sleep(5)
 st.rerun()
 
  
->>>>>>> 9535fd77bd470ca55e6bb8da405db450d85389e1
+
