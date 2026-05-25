@@ -1,13 +1,13 @@
 import streamlit as st
 
 st.set_page_config(
-    page_title="Pravatta Bitcoin Volatility Terminal",
+    page_title="Pravatta Terminal",
     layout="wide"
 )
 
 st.sidebar.title("Pravatta Terminal")
 
-page = st.sidebar.radio(
+dashboard = st.sidebar.radio(
     "Select Dashboard",
     [
         "BTC DVOL Dashboard",
@@ -15,8 +15,8 @@ page = st.sidebar.radio(
     ]
 )
 
-if page == "BTC DVOL Dashboard":
-    exec(open("dashboard_btc_dvol.py", encoding="utf-8").read())
+if dashboard == "BTC DVOL Dashboard":
+    exec(open("dashboard_btc_dvol.py").read())
 
-elif page == "BTC Skew & Term Structure":
-    exec(open("dashboard_skew_term.py", encoding="utf-8").read())
+elif dashboard == "BTC Skew & Term Structure":
+    exec(open("dashboard_skew_term.py").read())
