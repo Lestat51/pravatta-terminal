@@ -186,5 +186,3 @@ try:
 except Exception as e:
     st.error(f"Erro ao buscar dados: {e}")
 
-time.sleep(10)
-st.rerun()
