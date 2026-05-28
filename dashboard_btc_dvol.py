@@ -1,41 +1,58 @@
+# -*- coding: utf-8 -*-
+
 import streamlit as st
 import requests
 import pandas as pd
 import plotly.express as px
 import time
-from datetime import datetime, timedelta
+from datetime import datetime
 
-ALERTA_DVOL = 42
-DERIBIT = "https://www.deribit.com/api/v2/public"
 
-st.set_page_config(
-    page_title="Pravatta BTC Volatility Dashboard",
-    layout="wide"
+st.title("Pravatta BTC Volatility Dashboard")
+
+st.caption(
+    "Real-time Bitcoin volatility, derivatives and positioning analytics powered by Deribit data."
 )
 
 
-def deribit_get(endpoint, params=None):
-    response = requests.get(
-        f"{DERIBIT}/{endpoint}",
-        params=params or {},
-        timeout=10
-    )
-    response.raise_for_status()
-    return response.json()["result"]
+# =========================
+# DATA FUNCTIONS
+# =========================
 
-def get_dvol_history(hours=24):
-    end = datetime.utcnow()
-    start = end - timedelta(hours=hours)
+@st.cache_data(ttl=60)
+def get_deribit_ticker():
+    url = "https://www.deribit.com/api/v2/public/ticker"
+    params = {"instrument_name": "BTC-PERPETUAL"}
+    r = requests.get(url, params=params, timeout=20)
+    r.raise_for_status()
+    return r.json()["result"]
 
-    data = deribit_get("get_volatility_index_data", {
+
+@st.cache_data(ttl=60)
+def get_btc_price():
+    url = "https://www.deribit.com/api/v2/public/get_index_price"
+    params = {"index_name": "btc_usd"}
+    r = requests.get(url, params=params, timeout=20)
+    r.raise_for_status()
+    return r.json()["result"]["index_price"]
+
+
+@st.cache_data(ttl=60)
+def get_dvol():
+    url = "https://www.deribit.com/api/v2/public/get_volatility_index_data"
+    params = {
         "currency": "BTC",
-        "start_timestamp": int(start.timestamp() * 1000),
-        "end_timestamp": int(end.timestamp() * 1000),
+        "start_timestamp": int((time.time() - 24 * 3600) * 1000),
+        "end_timestamp": int(time.time() * 1000),
         "resolution": "60"
-    })
+    }
+
+    r = requests.get(url, params=params, timeout=20)
+    r.raise_for_status()
+    data = r.json()["result"]["data"]
 
     df = pd.DataFrame(
-        data["data"],
+        data,
         columns=["timestamp", "open", "high", "low", "close"]
     )
 
@@ -43,150 +60,106 @@ def get_dvol_history(hours=24):
     df["DVOL"] = df["close"]
 
     return df[["time", "DVOL"]]
-def get_btc_history(hours=24):
-    end = datetime.utcnow()
-    start = end - timedelta(hours=hours)
-
-    data = deribit_get("get_tradingview_chart_data", {
-        "instrument_name": "BTC-PERPETUAL",
-        "start_timestamp": int(start.timestamp() * 1000),
-        "end_timestamp": int(end.timestamp() * 1000),
-        "resolution": "60"
-    })
-
-    df = pd.DataFrame({
-        "time": pd.to_datetime(data["ticks"], unit="ms"),
-        "BTC": data["close"]
-    })
-
-    return df
-
-def get_index_price(index_name):
-    data = deribit_get("get_index_price", {"index_name": index_name})
-    return data["index_price"]
 
 
-def get_perp_summary():
-    data = deribit_get(
-        "get_book_summary_by_instrument",
-        {"instrument_name": "BTC-PERPETUAL"}
-    )
-    return data[0]
-
-
+@st.cache_data(ttl=60)
 def get_options_summary():
-    return deribit_get(
-        "get_book_summary_by_currency",
-        {"currency": "BTC", "kind": "option"}
-    )
+    url = "https://www.deribit.com/api/v2/public/get_book_summary_by_currency"
+    params = {"currency": "BTC", "kind": "option"}
+    r = requests.get(url, params=params, timeout=20)
+    r.raise_for_status()
+    return pd.DataFrame(r.json()["result"])
 
 
-def calculate_skew(options):
-    df = pd.DataFrame(options)
-    df = df.dropna(subset=["mark_iv", "underlying_price"])
+@st.cache_data(ttl=60)
+def get_btc_history_proxy():
+    ticker = get_deribit_ticker()
+    btc_now = ticker["last_price"]
 
-    if df.empty:
-        return None
+    dvol_df = get_dvol().copy()
+    dvol_df["BTC"] = btc_now
 
-    spot = df["underlying_price"].median()
-
-    df["expiry"] = df["instrument_name"].str.extract(
-        r"BTC-(\d{1,2}[A-Z]{3}\d{2})-"
-    )
-
-    df["strike"] = df["instrument_name"].str.extract(
-        r"BTC-\d{1,2}[A-Z]{3}\d{2}-(\d+)-[CP]"
-    ).astype(float)
-
-    df = df.dropna(subset=["expiry", "strike"])
-
-    expiries = sorted(df["expiry"].unique())
-
-    if len(expiries) == 0:
-        return None
-
-    expiry = expiries[0]
-    df = df[df["expiry"] == expiry]
-
-    calls = df[df["instrument_name"].str.endswith("-C")].copy()
-    puts = df[df["instrument_name"].str.endswith("-P")].copy()
-
-    if calls.empty or puts.empty:
-        return None
-
-    target_call_strike = spot * 1.05
-    target_put_strike = spot * 0.95
-
-    calls["distance"] = abs(calls["strike"] - target_call_strike)
-    puts["distance"] = abs(puts["strike"] - target_put_strike)
-
-    call_iv = calls.sort_values("distance").iloc[0]["mark_iv"]
-    put_iv = puts.sort_values("distance").iloc[0]["mark_iv"]
-
-    return put_iv - call_iv
+    return dvol_df
 
 
-def dvol_regime(dvol):
-    if dvol < 35:
-        return "Extreme Complacency"
-    elif dvol < 42:
-        return "Normal Volatility"
-    elif dvol < 55:
-        return "Rising Risk"
-    elif dvol < 70:
-        return "Stress"
-    else:
-        return "Capitulation / Panic"
+# =========================
+# FETCH DATA
+# =========================
+
+btc_price = get_btc_price()
+ticker = get_deribit_ticker()
+dvol_df = get_dvol()
+options_df = get_options_summary()
+
+current_dvol = dvol_df["DVOL"].iloc[-1]
+funding_8h = ticker.get("funding_8h", 0) * 100
+open_interest = ticker.get("open_interest", 0)
+
+options_df = options_df[options_df["open_interest"] > 0].copy()
+
+total_oi_usd = (
+    options_df["open_interest"].sum() * btc_price
+    if not options_df.empty
+    else 0
+)
+
+avg_skew = 0
+
+if not options_df.empty:
+    options_df["instrument_name"] = options_df["instrument_name"].astype(str)
+    parts = options_df["instrument_name"].str.split("-", expand=True)
+
+    options_df["strike"] = parts[2].astype(float)
+    options_df["option_type"] = parts[3]
+
+    calls = options_df[options_df["option_type"] == "C"]
+    puts = options_df[options_df["option_type"] == "P"]
+
+    if not calls.empty and not puts.empty:
+        avg_put_iv = puts["mark_iv"].mean()
+        avg_call_iv = calls["mark_iv"].mean()
+        avg_skew = avg_put_iv - avg_call_iv
 
 
-if "history" not in st.session_state:
-    st.session_state.history = []
-
-
-st.title("Pravatta BTC Volatility Dashboard")
-st.caption("Real-time Bitcoin volatility, derivatives and positioning analytics powered by Deribit data.")
-
-
-btc_price = get_index_price("btc_usd")
-dvol = get_index_price("btcdvol_usdc")
-perp = get_perp_summary()
-options = get_options_summary()
-
-funding = perp.get("funding_8h", 0)
-oi = perp.get("open_interest", 0)
-skew = calculate_skew(options)
-
-regime = dvol_regime(dvol)
-now = datetime.now().strftime("%H:%M:%S")
-
-st.session_state.history.append({
-    "time": now,
-    "BTC": btc_price,
-    "DVOL": dvol
-})
-st.session_state.history = st.session_state.history[-300:]
+# =========================
+# METRICS
+# =========================
 
 col1, col2, col3, col4, col5 = st.columns(5)
 
 col1.metric("BTC Price", f"${btc_price:,.2f}")
-col2.metric("DVOL", f"{dvol:.2f}%")
-col3.metric("Skew", f"{skew:.2f}" if skew is not None else "N/A")
-col4.metric("Funding 8h", f"{funding * 100:.5f}%")
-col5.metric("Open Interest", f"${oi/1_000_000:,.2f}M")
+col2.metric("DVOL", f"{current_dvol:.2f}%")
+col3.metric("Skew", f"{avg_skew:.2f}")
+col4.metric("Funding 8h", f"{funding_8h:.5f}%")
+col5.metric("Open Interest", f"${total_oi_usd / 1e6:,.2f}M")
+
+
+# =========================
+# VOLATILITY REGIME
+# =========================
 
 st.subheader("Volatility Regime")
 
-if dvol < 35:
-    st.info(f"🟦 Regime: {regime}")
-elif dvol < 42:
-    st.success(f"🟩 Regime: {regime}")
-elif dvol < 55:
-    st.warning(f"🟨 Regime: {regime}")
+if current_dvol < 35:
+    regime = "Extreme Complacency"
+    regime_icon = "🔵"
+elif current_dvol < 42:
+    regime = "Normal Volatility"
+    regime_icon = "🟢"
+elif current_dvol < 55:
+    regime = "Rising Risk"
+    regime_icon = "🟡"
+elif current_dvol < 70:
+    regime = "Stress"
+    regime_icon = "🟠"
 else:
-    st.error(f"🟥 Regime: {regime}")
+    regime = "Capitulation / Panic"
+    regime_icon = "🔴"
+
+st.success(f"{regime_icon} Regime: {regime}")
 
 regime_table = pd.DataFrame({
-    "DVOL": ["< 35", "35–42", "42–55", "55–70", "\\> 70"],
+    "DVOL": ["< 35", "35–42", "42–55", "55–70", "> 70"],
     "Regime": [
         "Extreme Complacency",
         "Normal Volatility",
@@ -196,14 +169,20 @@ regime_table = pd.DataFrame({
     ]
 })
 
-st.table(regime_table)
+st.dataframe(regime_table, use_container_width=True, hide_index=True)
 
-df_dvol = get_dvol_history(24)
-df_btc = get_btc_history(24)
+st.caption(f"DVOL history points: {len(dvol_df)}")
 
-st.caption(f"DVOL history points: {len(df_dvol)}")
 
-df_combined = pd.merge(df_btc, df_dvol, on="time")
+# =========================
+# BTC VS DVOL
+# =========================
+
+st.subheader("BTC vs DVOL — 24h")
+
+df_combined = dvol_df.copy()
+
+df_combined["BTC"] = btc_price
 
 df_combined["BTC Normalized"] = (
     df_combined["BTC"] / df_combined["BTC"].iloc[0]
@@ -213,18 +192,28 @@ df_combined["DVOL Normalized"] = (
     df_combined["DVOL"] / df_combined["DVOL"].iloc[0]
 ) * 100
 
-st.subheader("BTC vs DVOL — 24h")
-
 fig = px.line(
     df_combined,
     x="time",
     y=["BTC Normalized", "DVOL Normalized"],
+    title="BTC vs DVOL — 24h"
+)
+
+fig.update_layout(
+    xaxis_title="Time",
+    yaxis_title="Normalized Value"
 )
 
 fig.update_yaxes(autorange=True)
 
 st.plotly_chart(fig, use_container_width=True)
 
+
+# =========================
+# FOOTER
+# =========================
+
+now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 st.caption(f"Última atualização: {now}")
 
@@ -234,6 +223,3 @@ st.caption("Market analytics and volatility research.")
 
 time.sleep(5)
 st.rerun()
-
- 
-
