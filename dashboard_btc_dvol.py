@@ -4,8 +4,8 @@ import streamlit as st
 import requests
 import pandas as pd
 import plotly.express as px
+from datetime import datetime, timezone
 import time
-from datetime import datetime
 
 
 st.title("Pravatta BTC Volatility Dashboard")
@@ -16,84 +16,123 @@ st.caption(
 
 
 # =========================
-# DATA FUNCTIONS
+# Helpers
 # =========================
 
-@st.cache_data(ttl=60)
-def get_deribit_ticker():
-    url = "https://www.deribit.com/api/v2/public/ticker"
-    params = {"instrument_name": "BTC-PERPETUAL"}
-    r = requests.get(url, params=params, timeout=20)
-    r.raise_for_status()
-    return r.json()["result"]
+def now_ms():
+    return int(time.time() * 1000)
 
+
+def hours_ago_ms(hours):
+    return int((time.time() - hours * 3600) * 1000)
+
+
+# =========================
+# Data functions
+# =========================
 
 @st.cache_data(ttl=60)
 def get_btc_price():
     url = "https://www.deribit.com/api/v2/public/get_index_price"
     params = {"index_name": "btc_usd"}
+
     r = requests.get(url, params=params, timeout=20)
     r.raise_for_status()
+
     return r.json()["result"]["index_price"]
 
 
 @st.cache_data(ttl=60)
-def get_dvol():
+def get_btc_ticker():
+    url = "https://www.deribit.com/api/v2/public/ticker"
+    params = {"instrument_name": "BTC-PERPETUAL"}
+
+    r = requests.get(url, params=params, timeout=20)
+    r.raise_for_status()
+
+    return r.json()["result"]
+
+
+@st.cache_data(ttl=60)
+def get_btc_24h_history():
+    url = "https://www.deribit.com/api/v2/public/get_tradingview_chart_data"
+
+    params = {
+        "instrument_name": "BTC-PERPETUAL",
+        "start_timestamp": hours_ago_ms(24),
+        "end_timestamp": now_ms(),
+        "resolution": "1"
+    }
+
+    r = requests.get(url, params=params, timeout=20)
+    r.raise_for_status()
+
+    result = r.json()["result"]
+
+    df = pd.DataFrame({
+        "time": pd.to_datetime(result["ticks"], unit="ms"),
+        "BTC": result["close"]
+    })
+
+    df = df.dropna()
+    df = df.sort_values("time")
+
+    return df
+
+
+@st.cache_data(ttl=60)
+def get_dvol_24h_history():
     url = "https://www.deribit.com/api/v2/public/get_volatility_index_data"
+
     params = {
         "currency": "BTC",
-        "start_timestamp": int((time.time() - 24 * 3600) * 1000),
-        "end_timestamp": int(time.time() * 1000),
+        "start_timestamp": hours_ago_ms(24),
+        "end_timestamp": now_ms(),
         "resolution": "60"
     }
 
     r = requests.get(url, params=params, timeout=20)
     r.raise_for_status()
-    data = r.json()["result"]["data"]
+
+    result = r.json()["result"]["data"]
 
     df = pd.DataFrame(
-        data,
+        result,
         columns=["timestamp", "open", "high", "low", "close"]
     )
 
     df["time"] = pd.to_datetime(df["timestamp"], unit="ms")
     df["DVOL"] = df["close"]
 
-    return df[["time", "DVOL"]]
+    df = df[["time", "DVOL"]].dropna()
+    df = df.sort_values("time")
+
+    return df
 
 
 @st.cache_data(ttl=60)
 def get_options_summary():
     url = "https://www.deribit.com/api/v2/public/get_book_summary_by_currency"
     params = {"currency": "BTC", "kind": "option"}
+
     r = requests.get(url, params=params, timeout=20)
     r.raise_for_status()
+
     return pd.DataFrame(r.json()["result"])
 
 
-@st.cache_data(ttl=60)
-def get_btc_history_proxy():
-    ticker = get_deribit_ticker()
-    btc_now = ticker["last_price"]
-
-    dvol_df = get_dvol().copy()
-    dvol_df["BTC"] = btc_now
-
-    return dvol_df
-
-
 # =========================
-# FETCH DATA
+# Fetch data
 # =========================
 
 btc_price = get_btc_price()
-ticker = get_deribit_ticker()
-dvol_df = get_dvol()
+ticker = get_btc_ticker()
+btc_df = get_btc_24h_history()
+dvol_df = get_dvol_24h_history()
 options_df = get_options_summary()
 
 current_dvol = dvol_df["DVOL"].iloc[-1]
 funding_8h = ticker.get("funding_8h", 0) * 100
-open_interest = ticker.get("open_interest", 0)
 
 options_df = options_df[options_df["open_interest"] > 0].copy()
 
@@ -122,7 +161,7 @@ if not options_df.empty:
 
 
 # =========================
-# METRICS
+# Metrics
 # =========================
 
 col1, col2, col3, col4, col5 = st.columns(5)
@@ -135,7 +174,7 @@ col5.metric("Open Interest", f"${total_oi_usd / 1e6:,.2f}M")
 
 
 # =========================
-# VOLATILITY REGIME
+# Volatility regime
 # =========================
 
 st.subheader("Volatility Regime")
@@ -175,14 +214,36 @@ st.caption(f"DVOL history points: {len(dvol_df)}")
 
 
 # =========================
-# BTC VS DVOL
+# BTC vs DVOL 24h
 # =========================
 
 st.subheader("BTC vs DVOL — 24h")
 
-df_combined = dvol_df.copy()
+btc_resampled = (
+    btc_df.set_index("time")
+    .resample("5min")
+    .last()
+    .dropna()
+    .reset_index()
+)
 
-df_combined["BTC"] = btc_price
+dvol_resampled = (
+    dvol_df.set_index("time")
+    .resample("5min")
+    .last()
+    .dropna()
+    .reset_index()
+)
+
+df_combined = pd.merge_asof(
+    btc_resampled.sort_values("time"),
+    dvol_resampled.sort_values("time"),
+    on="time",
+    direction="nearest",
+    tolerance=pd.Timedelta("5min")
+)
+
+df_combined = df_combined.dropna()
 
 df_combined["BTC Normalized"] = (
     df_combined["BTC"] / df_combined["BTC"].iloc[0]
@@ -204,13 +265,11 @@ fig.update_layout(
     yaxis_title="Normalized Value"
 )
 
-fig.update_yaxes(autorange=True)
-
 st.plotly_chart(fig, use_container_width=True)
 
 
 # =========================
-# FOOTER
+# Footer
 # =========================
 
 now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -220,6 +279,3 @@ st.caption(f"Última atualização: {now}")
 st.markdown("---")
 st.caption("© 2026 Pravatta Research")
 st.caption("Market analytics and volatility research.")
-
-time.sleep(5)
-st.rerun()
