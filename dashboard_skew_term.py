@@ -7,7 +7,7 @@ import plotly.graph_objects as go
 from scipy.stats import norm
 from datetime import datetime
 
-from gamma_utils import calculate_gamma_flip
+from gamma_utils import build_gex_by_strike, calculate_gamma_flip
 
 
 st.title("BTC Skew & Term Structure Dashboard")
@@ -185,40 +185,16 @@ st.plotly_chart(fig_skew, use_container_width=True)
 # Gamma Exposure Approximation
 # =========================
 
-st.subheader("Gamma Exposure Approximation")
+gex_by_strike = build_gex_by_strike(df, btc_price)
 
-gex_df = df[
-    (df["strike"] > btc_price * 0.5) &
-    (df["strike"] < btc_price * 1.8)
-].copy()
+gex_by_strike = build_gex_by_strike(df, btc_price)
 
-gex_df["signed_gamma"] = np.where(
-    gex_df["option_type"] == "call",
-    gex_df["gamma"],
-    -gex_df["gamma"]
-)
-
-gex_df["signed_gex"] = (
-    gex_df["signed_gamma"] *
-    gex_df["open_interest"] *
-    btc_price ** 2
-)
-
-gex = (
-    gex_df.groupby("strike")["signed_gex"]
-    .sum()
-    .reset_index()
-    .sort_values("strike")
-)
-
-gex_for_flip = gex.rename(columns={"signed_gex": "gex"})
-
-gamma_flip = calculate_gamma_flip(gex_for_flip, btc_price)
+gamma_flip = calculate_gamma_flip(gex_by_strike, btc_price)
 
 fig_gex = px.bar(
-    gex,
+    gex_by_strike,
     x="strike",
-    y="signed_gex",
+    y="gex",
     title="Signed Gamma Exposure by Strike"
 )
 

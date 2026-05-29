@@ -5,7 +5,7 @@ import numpy as np
 import plotly.express as px
 from scipy.stats import norm
 from datetime import datetime
-from gamma_utils import calculate_gamma_flip
+from gamma_utils import build_gex_by_strike, calculate_gamma_flip
 
 
 st.title("Dealer Gamma")
@@ -51,7 +51,10 @@ df["type"] = split_cols[3]
 # BTC PRICE
 # -------------------------
 
-btc_price = df["underlying_price"].mean()
+btc_price = requests.get(
+    "https://www.deribit.com/api/v2/public/get_index_price",
+    params={"index_name": "btc_usd"}
+).json()["result"]["index_price"]
 
 # -------------------------
 # FILTER LIQUID STRIKES
@@ -118,24 +121,14 @@ df["gamma"] = df.apply(
 # GAMMA EXPOSURE
 # -------------------------
 
-df["gex"] = (
-    df["gamma"]
-    * df["open_interest"]
-    * btc_price ** 2
-)
+df["option_type"] = df["type"]
 
-# puts negative
-df.loc[df["type"] == "P", "gex"] *= -1
+gex_by_strike = build_gex_by_strike(df, btc_price)
 
-# -------------------------
-# AGGREGATE BY STRIKE
-# -------------------------
+gex_by_strike = build_gex_by_strike(df, btc_price)
 
-gex_by_strike = (
-    df.groupby("strike")["gex"]
-    .sum()
-    .reset_index()
-)
+gamma_flip = calculate_gamma_flip(gex_by_strike, btc_price)
+
 
 # -------------------------
 # CALL WALL / PUT WALL
@@ -155,12 +148,6 @@ put_wall = (
     .idxmax()
 )
 
-# -------------------------
-# GAMMA FLIP
-# same logic as Skew & Term Structure
-# -------------------------
-
-gamma_flip = calculate_gamma_flip(gex_by_strike, btc_price)
 
 # -------------------------
 # METRICS
@@ -170,9 +157,9 @@ gamma_flip = calculate_gamma_flip(gex_by_strike, btc_price)
 # DEALER REGIME
 # -------------------------
 
-total_gex = gex_by_strike["gex"].sum()
+distance_to_flip_pct = ((btc_price - gamma_flip) / gamma_flip) * 100
 
-if total_gex > 0:
+if btc_price >= gamma_flip:
     regime = "Long Gamma"
 else:
     regime = "Short Gamma"
@@ -182,9 +169,14 @@ else:
 # METRICS
 # -------------------------
 
-col1, col2, col3, col4 = st.columns(4)
+col1, col2, col3, col4, col5 = st.columns(5)
 
-col1, col2, col3, col4 = st.columns(4)
+col1, col2, col3, col4, col5 = st.columns(5)
+
+col5.metric(
+    "Distance to Flip",
+    f"{distance_to_flip_pct:.2f}%"
+)
 
 col1.metric(
     "Gamma Flip",
